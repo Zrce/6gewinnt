@@ -1,478 +1,508 @@
 <!DOCTYPE html>
 <html lang="de">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>6 Gewinnt!</title>
-<style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-
-  body {
-    background: #1a1a2e;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-height: 100vh;
-    font-family: 'Segoe UI', system-ui, sans-serif;
-    color: #eee;
-    user-select: none;
-  }
-
-  h1 {
-    font-size: 2.4rem;
-    margin-bottom: 0.3rem;
-    letter-spacing: 2px;
-    color: #f0f0f0;
-  }
-
-  .status {
-    font-size: 1.2rem;
-    margin-bottom: 0.3rem;
-    height: 2rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
-
-  .status .dot {
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    display: inline-block;
-    border: 2px solid rgba(255,255,255,0.3);
-  }
-
-  .dot.red { background: radial-gradient(circle at 35% 35%, #ff6b6b, #c0392b); }
-  .dot.yellow { background: radial-gradient(circle at 35% 35%, #ffd93d, #f39c12); }
-
-  .board-wrapper {
-    position: relative;
-  }
-
-  /* Preview row above the board */
-  .preview-row {
-    display: grid;
-    grid-template-columns: repeat(13, 58px);
-    gap: 4px;
-    padding: 0 8px;
-    height: 46px;
-    margin-bottom: 4px;
-  }
-
-  .preview-cell {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .preview-cell .preview-piece {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    opacity: 0;
-    transition: opacity 0.15s;
-  }
-
-  .board {
-    background: linear-gradient(145deg, #1648a0, #0d3b8a);
-    border-radius: 12px;
-    padding: 8px;
-    display: grid;
-    grid-template-columns: repeat(13, 58px);
-    grid-template-rows: repeat(11, 58px);
-    gap: 4px;
-    box-shadow:
-      0 8px 32px rgba(0,0,0,0.5),
-      inset 0 2px 4px rgba(255,255,255,0.1);
-  }
-
-  .cell {
-    background: radial-gradient(circle, #0a1628 38%, transparent 40%),
-                linear-gradient(145deg, #1648a0, #0d3b8a);
-    border-radius: 50%;
-    position: relative;
-    cursor: pointer;
-    transition: transform 0.1s;
-  }
-
-  .cell:hover {
-    transform: scale(1.04);
-  }
-
-  .cell::after {
-    content: '';
-    position: absolute;
-    inset: 6px;
-    border-radius: 50%;
-    background: #0a1628;
-    transition: background 0.2s;
-  }
-
-  .cell.red::after {
-    background: radial-gradient(circle at 35% 35%, #ff6b6b, #c0392b);
-    box-shadow: inset 0 2px 4px rgba(255,255,255,0.3), 0 2px 8px rgba(192,57,43,0.4);
-  }
-
-  .cell.yellow::after {
-    background: radial-gradient(circle at 35% 35%, #ffd93d, #f39c12);
-    box-shadow: inset 0 2px 4px rgba(255,255,255,0.3), 0 2px 8px rgba(243,156,18,0.4);
-  }
-
-  .cell.win::after {
-    animation: pulse 0.6s ease-in-out infinite alternate;
-  }
-
-  .cell.red.win::after {
-    box-shadow: 0 0 20px #e74c3c, 0 0 40px #e74c3c;
-  }
-
-  .cell.yellow.win::after {
-    box-shadow: 0 0 20px #f39c12, 0 0 40px #f39c12;
-  }
-
-  @keyframes pulse {
-    from { transform: scale(1); }
-    to { transform: scale(1.08); }
-  }
-
-  /* Drop animation */
-  @keyframes drop {
-    0% { transform: translateY(-400px); opacity: 0.7; }
-    60% { transform: translateY(10px); }
-    80% { transform: translateY(-4px); }
-    100% { transform: translateY(0); opacity: 1; }
-  }
-
-  .cell.drop::after {
-    animation: drop 0.4s ease-in forwards;
-  }
-
-  .btn {
-    margin-top: 1.2rem;
-    padding: 0.7rem 2rem;
-    font-size: 1rem;
-    border: none;
-    border-radius: 8px;
-    background: linear-gradient(145deg, #1648a0, #0d3b8a);
-    color: #eee;
-    cursor: pointer;
-    letter-spacing: 1px;
-    transition: background 0.2s, transform 0.1s;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-  }
-
-  .btn:hover {
-    background: linear-gradient(145deg, #1d5ac0, #1248a8);
-    transform: translateY(-1px);
-  }
-
-  .btn:active {
-    transform: translateY(1px);
-  }
-
-  .footer {
-    margin-top: 1rem;
-    font-size: 0.85rem;
-    opacity: 0.5;
-  }
-
-  .player-label {
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 150px;
-    text-align: center;
-    font-size: 0.78rem;
-    line-height: 1.7;
-    padding: 1rem 0.8rem;
-    border-radius: 10px;
-    border: 2px solid transparent;
-    transition: opacity 0.3s, border-color 0.3s, background 0.3s;
-    opacity: 0.35;
-  }
-
-  .player-label.active {
-    opacity: 1;
-    background: rgba(255,255,255,0.05);
-  }
-
-  .player-label.active.red {
-    border-color: rgba(192, 57, 43, 0.6);
-  }
-
-  .player-label.active.yellow {
-    border-color: rgba(243, 156, 18, 0.6);
-  }
-
-  .player-label .player-name {
-    font-weight: 700;
-    font-size: 1.1rem;
-    margin-bottom: 0.2rem;
-  }
-
-  .player-label .player-color {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.4rem;
-    margin-bottom: 0.5rem;
-    font-size: 0.85rem;
-  }
-
-  .player-label-left {
-    right: calc(100% + 20px);
-  }
-
-  .player-label-right {
-    left: calc(100% + 20px);
-  }
-
-  .player-label kbd {
-    display: inline-block;
-    background: rgba(255,255,255,0.1);
-    border: 1px solid rgba(255,255,255,0.2);
-    border-radius: 4px;
-    padding: 0px 5px;
-    font-family: inherit;
-    font-size: 0.75rem;
-    min-width: 22px;
-    text-align: center;
-  }
-
-  .player-label .keys-title {
-    font-weight: 600;
-    margin-bottom: 0.2rem;
-    opacity: 0.7;
-    font-size: 0.75rem;
-  }
-
-  /* Keyboard cursor highlight on preview */
-  .preview-cell .preview-piece.kbd-active {
-    opacity: 0.7 !important;
-    outline: 2px solid rgba(255,255,255,0.5);
-    outline-offset: 3px;
-  }
-</style>
-</head>
-<body>
-
-<h1>6 Gewinnt!</h1>
-
-<div class="status" id="status">
-  <span class="dot red"></span>
-  <span>Rot ist am Zug</span>
-</div>
-
-<div class="board-wrapper">
-  <div class="preview-row" id="preview"></div>
-  <div class="board" id="board"></div>
-  <div class="player-label player-label-left" id="player1">
-    <div class="player-name">Spieler 1</div>
-    <div class="player-color"><span class="dot red"></span> Rot</div>
-    <div class="keys-title">Tasten</div>
-    <kbd>A</kbd> Links<br>
-    <kbd>D</kbd> Rechts<br>
-    <kbd>S</kbd> Einwerfen
-  </div>
-  <div class="player-label player-label-right" id="player2">
-    <div class="player-name">Spieler 2</div>
-    <div class="player-color"><span class="dot yellow"></span> Gelb</div>
-    <div class="keys-title">Tasten</div>
-    <kbd>&larr;</kbd> Links<br>
-    <kbd>&rarr;</kbd> Rechts<br>
-    <kbd>&darr;</kbd> Einwerfen
-  </div>
-</div>
-
-<button class="btn" onclick="init()">Neues Spiel</button>
-
-<div class="footer">Verbinde 6 Steine in einer Reihe, Spalte oder Diagonale.</div>
-
-<script>
-const COLS = 13, ROWS = 11, WIN = 6;
-let grid, turn, gameOver, cursorCol = Math.floor(COLS / 2), kbdMode = false;
-
-function init() {
-  grid = Array.from({length: ROWS}, () => Array(COLS).fill(0));
-  turn = 1;
-  gameOver = false;
-  render();
-  updateStatus();
-}
-
-function color(v) { return v === 1 ? 'red' : v === 2 ? 'yellow' : ''; }
-
-function render() {
-  const board = document.getElementById('board');
-  const preview = document.getElementById('preview');
-  board.innerHTML = '';
-  preview.innerHTML = '';
-
-  for (let c = 0; c < COLS; c++) {
-    const pc = document.createElement('div');
-    pc.className = 'preview-cell';
-    pc.innerHTML = '<div class="preview-piece"></div>';
-    preview.appendChild(pc);
-  }
-
-  for (let r = 0; r < ROWS; r++) {
-    for (let c = 0; c < COLS; c++) {
-      const cell = document.createElement('div');
-      cell.className = 'cell ' + color(grid[r][c]);
-      cell.dataset.col = c;
-
-      cell.addEventListener('click', () => drop(c));
-      cell.addEventListener('mouseenter', () => { kbdMode = false; showPreview(c); });
-      cell.addEventListener('mouseleave', clearPreview);
-
-      board.appendChild(cell);
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>6 Gewinnt!</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
     }
-  }
-}
 
-function showPreview(col) {
-  if (gameOver) return;
-  const pieces = document.querySelectorAll('.preview-piece');
-  pieces.forEach((p, i) => {
-    if (i === col && grid[0][col] === 0) {
-      p.style.opacity = '0.7';
-      p.style.background = turn === 1
-        ? 'radial-gradient(circle at 35% 35%, #ff6b6b, #c0392b)'
-        : 'radial-gradient(circle at 35% 35%, #ffd93d, #f39c12)';
-    } else {
-      p.style.opacity = '0';
+    body {
+      background: #1a1a2e;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      color: #eee;
+      user-select: none;
     }
-  });
-}
 
-function clearPreview() {
-  document.querySelectorAll('.preview-piece').forEach(p => p.style.opacity = '0');
-}
+    h1 {
+      font-size: 2.4rem;
+      margin-bottom: 0.3rem;
+      letter-spacing: 2px;
+      color: #f0f0f0;
+    }
 
-function drop(col) {
-  if (gameOver) return;
+    .status {
+      font-size: 1.2rem;
+      margin-bottom: 0.3rem;
+      height: 2rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
 
-  let row = -1;
-  for (let r = ROWS - 1; r >= 0; r--) {
-    if (grid[r][col] === 0) { row = r; break; }
-  }
-  if (row === -1) return;
+    .status .dot {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      display: inline-block;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+    }
 
-  grid[row][col] = turn;
+    .dot.red {
+      background: radial-gradient(circle at 35% 35%, #ff6b6b, #c0392b);
+    }
 
-  const cell = document.querySelector(`.board`).children[row * COLS + col];
-  cell.className = 'cell ' + color(turn) + ' drop';
+    .dot.yellow {
+      background: radial-gradient(circle at 35% 35%, #ffd93d, #f39c12);
+    }
 
-  const winCells = checkWin(row, col, turn);
-  if (winCells) {
-    gameOver = true;
-    winCells.forEach(([r, c]) => {
-      document.querySelector('.board').children[r * COLS + c].classList.add('win');
-    });
-    updateStatus(turn === 1 ? 'Spieler 1 gewinnt!' : 'Spieler 2 gewinnt!', turn);
-    clearPreview();
-    return;
-  }
+    .board-wrapper {
+      position: relative;
+    }
 
-  if (grid.every(row => row.every(v => v !== 0))) {
-    gameOver = true;
-    updateStatus('Unentschieden!');
-    return;
-  }
+    /* Preview row above the board */
+    .preview-row {
+      display: grid;
+      grid-template-columns: repeat(13, 58px);
+      gap: 4px;
+      padding: 0 8px;
+      height: 46px;
+      margin-bottom: 4px;
+    }
 
-  turn = turn === 1 ? 2 : 1;
-  updateStatus();
-  showPreview(col);
-}
+    .preview-cell {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
 
-function updateStatus(msg, winner) {
-  const el = document.getElementById('status');
-  const p1 = document.getElementById('player1');
-  const p2 = document.getElementById('player2');
-  if (msg) {
-    const c = winner ? color(winner) : '';
-    el.innerHTML = (c ? '<span class="dot ' + c + '"></span>' : '') + '<span>' + msg + '</span>';
-    p1.classList.remove('active', 'red', 'yellow');
-    p2.classList.remove('active', 'red', 'yellow');
-    if (winner === 1) { p1.classList.add('active', 'red'); }
-    else if (winner === 2) { p2.classList.add('active', 'yellow'); }
-  } else {
-    const c = color(turn);
-    const name = turn === 1 ? 'Spieler 1' : 'Spieler 2';
-    el.innerHTML = '<span class="dot ' + c + '"></span><span>' + name + ' ist am Zug</span>';
-    p1.classList.remove('active', 'red');
-    p2.classList.remove('active', 'yellow');
-    if (turn === 1) { p1.classList.add('active', 'red'); }
-    else { p2.classList.add('active', 'yellow'); }
-  }
-}
+    .preview-cell .preview-piece {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
 
-function checkWin(row, col, player) {
-  const dirs = [[0,1],[1,0],[1,1],[1,-1]];
-  for (const [dr, dc] of dirs) {
-    let cells = [[row, col]];
-    for (let d = -1; d <= 1; d += 2) {
-      for (let i = 1; i < WIN; i++) {
-        const r = row + dr * i * d, c = col + dc * i * d;
-        if (r < 0 || r >= ROWS || c < 0 || c >= COLS || grid[r][c] !== player) break;
-        cells.push([r, c]);
+    .board {
+      background: linear-gradient(145deg, #1648a0, #0d3b8a);
+      border-radius: 12px;
+      padding: 8px;
+      display: grid;
+      grid-template-columns: repeat(13, 58px);
+      grid-template-rows: repeat(11, 58px);
+      gap: 4px;
+      box-shadow:
+        0 8px 32px rgba(0, 0, 0, 0.5),
+        inset 0 2px 4px rgba(255, 255, 255, 0.1);
+    }
+
+    .cell {
+      background: radial-gradient(circle, #0a1628 38%, transparent 40%),
+        linear-gradient(145deg, #1648a0, #0d3b8a);
+      border-radius: 50%;
+      position: relative;
+      cursor: pointer;
+      transition: transform 0.1s;
+    }
+
+    .cell:hover {
+      transform: scale(1.04);
+    }
+
+    .cell::after {
+      content: '';
+      position: absolute;
+      inset: 6px;
+      border-radius: 50%;
+      background: #0a1628;
+      transition: background 0.2s;
+    }
+
+    .cell.red::after {
+      background: radial-gradient(circle at 35% 35%, #ff6b6b, #c0392b);
+      box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.3), 0 2px 8px rgba(192, 57, 43, 0.4);
+    }
+
+    .cell.yellow::after {
+      background: radial-gradient(circle at 35% 35%, #ffd93d, #f39c12);
+      box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.3), 0 2px 8px rgba(243, 156, 18, 0.4);
+    }
+
+    .cell.win::after {
+      animation: pulse 0.6s ease-in-out infinite alternate;
+    }
+
+    .cell.red.win::after {
+      box-shadow: 0 0 20px #e74c3c, 0 0 40px #e74c3c;
+    }
+
+    .cell.yellow.win::after {
+      box-shadow: 0 0 20px #f39c12, 0 0 40px #f39c12;
+    }
+
+    @keyframes pulse {
+      from {
+        transform: scale(1);
+      }
+
+      to {
+        transform: scale(1.08);
       }
     }
-    if (cells.length >= WIN) return cells;
-  }
-  return null;
-}
 
-function showKbdCursor() {
-  const pieces = document.querySelectorAll('.preview-piece');
-  pieces.forEach((p, i) => {
-    p.classList.remove('kbd-active');
-    if (i === cursorCol && grid[0][cursorCol] === 0 && !gameOver) {
-      p.style.opacity = '0.7';
-      p.style.background = turn === 1
-        ? 'radial-gradient(circle at 35% 35%, #ff6b6b, #c0392b)'
-        : 'radial-gradient(circle at 35% 35%, #ffd93d, #f39c12)';
-      if (kbdMode) p.classList.add('kbd-active');
-    } else {
-      p.style.opacity = '0';
+    /* Drop animation */
+    @keyframes drop {
+      0% {
+        transform: translateY(-400px);
+        opacity: 0.7;
+      }
+
+      60% {
+        transform: translateY(10px);
+      }
+
+      80% {
+        transform: translateY(-4px);
+      }
+
+      100% {
+        transform: translateY(0);
+        opacity: 1;
+      }
     }
-  });
-}
 
-document.addEventListener('keydown', function(e) {
-  const key = e.key.toLowerCase();
+    .cell.drop::after {
+      animation: drop 0.4s ease-in forwards;
+    }
 
-  if (key === 'n') { init(); return; }
+    .btn {
+      margin-top: 1.2rem;
+      padding: 0.7rem 2rem;
+      font-size: 1rem;
+      border: none;
+      border-radius: 8px;
+      background: linear-gradient(145deg, #1648a0, #0d3b8a);
+      color: #eee;
+      cursor: pointer;
+      letter-spacing: 1px;
+      transition: background 0.2s, transform 0.1s;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
 
-  // Spieler 1 (turn 1): A/S/D only
-  // Spieler 2 (turn 2): Arrow keys only
-  const isASD = key === 'a' || key === 's' || key === 'd';
-  const isArrow = key === 'arrowleft' || key === 'arrowright' || key === 'arrowdown';
+    .btn:hover {
+      background: linear-gradient(145deg, #1d5ac0, #1248a8);
+      transform: translateY(-1px);
+    }
 
-  if (isASD && turn !== 1) return;
-  if (isArrow && turn !== 2) return;
+    .btn:active {
+      transform: translateY(1px);
+    }
 
-  if (key === 'arrowleft' || key === 'a') {
-    e.preventDefault();
-    kbdMode = true;
-    cursorCol = Math.max(0, cursorCol - 1);
-    showKbdCursor();
-  } else if (key === 'arrowright' || key === 'd') {
-    e.preventDefault();
-    kbdMode = true;
-    cursorCol = Math.min(COLS - 1, cursorCol + 1);
-    showKbdCursor();
-  } else if (key === 'arrowdown' || key === 's') {
-    e.preventDefault();
-    kbdMode = true;
-    drop(cursorCol);
-    showKbdCursor();
-  }
-});
+    .footer {
+      margin-top: 1rem;
+      font-size: 0.85rem;
+      opacity: 0.5;
+    }
+
+    .player-label {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 150px;
+      text-align: center;
+      font-size: 0.78rem;
+      line-height: 1.7;
+      padding: 1rem 0.8rem;
+      border-radius: 10px;
+      border: 2px solid transparent;
+      transition: opacity 0.3s, border-color 0.3s, background 0.3s;
+      opacity: 0.35;
+    }
+
+    .player-label.active {
+      opacity: 1;
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .player-label.active.red {
+      border-color: rgba(192, 57, 43, 0.6);
+    }
+
+    .player-label.active.yellow {
+      border-color: rgba(243, 156, 18, 0.6);
+    }
+
+    .player-label .player-name {
+      font-weight: 700;
+      font-size: 1.1rem;
+      margin-bottom: 0.2rem;
+    }
+
+    .player-label .player-color {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      margin-bottom: 0.5rem;
+      font-size: 0.85rem;
+    }
+
+    .player-label-left {
+      right: calc(100% + 20px);
+    }
+
+    .player-label-right {
+      left: calc(100% + 20px);
+    }
+
+    kbd {
+      display: inline-block;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+      padding: 0px 5px;
+      font-family: inherit;
+      font-size: 0.75rem;
+      min-width: 22px;
+      text-align: center;
+    }
+
+    .player-label .keys-title {
+      font-weight: 600;
+      margin-bottom: 0.2rem;
+      opacity: 0.7;
+      font-size: 0.75rem;
+    }
+
+    /* Keyboard cursor highlight on preview */
+    .preview-cell .preview-piece.kbd-active {
+      opacity: 0.7 !important;
+      outline: 2px solid rgba(255, 255, 255, 0.5);
+      outline-offset: 3px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <h1>6 Gewinnt!</h1>
+
+  <div class="status" id="status">
+    <span class="dot red"></span>
+    <span>Rot ist am Zug</span>
+  </div>
+
+  <div class="board-wrapper">
+    <div class="preview-row" id="preview"></div>
+    <div class="board" id="board"></div>
+    <div class="player-label player-label-left" id="player1">
+      <div class="player-name">Spieler 1</div>
+      <div class="player-color"><span class="dot red"></span> Rot</div>
+      <div class="keys-title">Tasten</div>
+      <kbd>A</kbd> Links<br>
+      <kbd>D</kbd> Rechts<br>
+      <kbd>S</kbd> Einwerfen
+    </div>
+    <div class="player-label player-label-right" id="player2">
+      <div class="player-name">Spieler 2</div>
+      <div class="player-color"><span class="dot yellow"></span> Gelb</div>
+      <div class="keys-title">Tasten</div>
+      <kbd>&larr;</kbd> Links<br>
+      <kbd>&rarr;</kbd> Rechts<br>
+      <kbd>&darr;</kbd> Einwerfen
+    </div>
+  </div>
+
+  <button class="btn" onclick="init()">Neues Spiel <kbd>N</kbd></button>
+
+  <div class="footer">Verbinde 6 Steine in einer Reihe, Spalte oder Diagonale.</div>
+
+  <script>
+    const COLS = 13, ROWS = 11, WIN = 6;
+    let grid, turn, gameOver, cursorCol = Math.floor(COLS / 2), kbdMode = false;
+
+    function init() {
+      grid = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
+      turn = 1;
+      gameOver = false;
+      render();
+      updateStatus();
+    }
+
+    function color(v) { return v === 1 ? 'red' : v === 2 ? 'yellow' : ''; }
+
+    function render() {
+      const board = document.getElementById('board');
+      const preview = document.getElementById('preview');
+      board.innerHTML = '';
+      preview.innerHTML = '';
+
+      for (let c = 0; c < COLS; c++) {
+        const pc = document.createElement('div');
+        pc.className = 'preview-cell';
+        pc.innerHTML = '<div class="preview-piece"></div>';
+        preview.appendChild(pc);
+      }
+
+      for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+          const cell = document.createElement('div');
+          cell.className = 'cell ' + color(grid[r][c]);
+          cell.dataset.col = c;
+
+          cell.addEventListener('click', () => drop(c));
+          cell.addEventListener('mouseenter', () => { kbdMode = false; showPreview(c); });
+          cell.addEventListener('mouseleave', clearPreview);
+
+          board.appendChild(cell);
+        }
+      }
+    }
+
+    function showPreview(col) {
+      if (gameOver) return;
+      const pieces = document.querySelectorAll('.preview-piece');
+      pieces.forEach((p, i) => {
+        if (i === col && grid[0][col] === 0) {
+          p.style.opacity = '0.7';
+          p.style.background = turn === 1
+            ? 'radial-gradient(circle at 35% 35%, #ff6b6b, #c0392b)'
+            : 'radial-gradient(circle at 35% 35%, #ffd93d, #f39c12)';
+        } else {
+          p.style.opacity = '0';
+        }
+      });
+    }
+
+    function clearPreview() {
+      document.querySelectorAll('.preview-piece').forEach(p => p.style.opacity = '0');
+    }
+
+    function drop(col) {
+      if (gameOver) return;
+
+      let row = -1;
+      for (let r = ROWS - 1; r >= 0; r--) {
+        if (grid[r][col] === 0) { row = r; break; }
+      }
+      if (row === -1) return;
+
+      grid[row][col] = turn;
+
+      const cell = document.querySelector(`.board`).children[row * COLS + col];
+      cell.className = 'cell ' + color(turn) + ' drop';
+
+      const winCells = checkWin(row, col, turn);
+      if (winCells) {
+        gameOver = true;
+        winCells.forEach(([r, c]) => {
+          document.querySelector('.board').children[r * COLS + c].classList.add('win');
+        });
+        updateStatus(turn === 1 ? 'Spieler 1 gewinnt!' : 'Spieler 2 gewinnt!', turn);
+        clearPreview();
+        return;
+      }
+
+      if (grid.every(row => row.every(v => v !== 0))) {
+        gameOver = true;
+        updateStatus('Unentschieden!');
+        return;
+      }
+
+      turn = turn === 1 ? 2 : 1;
+      updateStatus();
+      showPreview(col);
+    }
+
+    function updateStatus(msg, winner) {
+      const el = document.getElementById('status');
+      const p1 = document.getElementById('player1');
+      const p2 = document.getElementById('player2');
+      if (msg) {
+        const c = winner ? color(winner) : '';
+        el.innerHTML = (c ? '<span class="dot ' + c + '"></span>' : '') + '<span>' + msg + '</span>';
+        p1.classList.remove('active', 'red', 'yellow');
+        p2.classList.remove('active', 'red', 'yellow');
+        if (winner === 1) { p1.classList.add('active', 'red'); }
+        else if (winner === 2) { p2.classList.add('active', 'yellow'); }
+      } else {
+        const c = color(turn);
+        const name = turn === 1 ? 'Spieler 1' : 'Spieler 2';
+        el.innerHTML = '<span class="dot ' + c + '"></span><span>' + name + ' ist am Zug</span>';
+        p1.classList.remove('active', 'red');
+        p2.classList.remove('active', 'yellow');
+        if (turn === 1) { p1.classList.add('active', 'red'); }
+        else { p2.classList.add('active', 'yellow'); }
+      }
+    }
+
+    function checkWin(row, col, player) {
+      const dirs = [[0, 1], [1, 0], [1, 1], [1, -1]];
+      for (const [dr, dc] of dirs) {
+        let cells = [[row, col]];
+        for (let d = -1; d <= 1; d += 2) {
+          for (let i = 1; i < WIN; i++) {
+            const r = row + dr * i * d, c = col + dc * i * d;
+            if (r < 0 || r >= ROWS || c < 0 || c >= COLS || grid[r][c] !== player) break;
+            cells.push([r, c]);
+          }
+        }
+        if (cells.length >= WIN) return cells;
+      }
+      return null;
+    }
+
+    function showKbdCursor() {
+      const pieces = document.querySelectorAll('.preview-piece');
+      pieces.forEach((p, i) => {
+        p.classList.remove('kbd-active');
+        if (i === cursorCol && grid[0][cursorCol] === 0 && !gameOver) {
+          p.style.opacity = '0.7';
+          p.style.background = turn === 1
+            ? 'radial-gradient(circle at 35% 35%, #ff6b6b, #c0392b)'
+            : 'radial-gradient(circle at 35% 35%, #ffd93d, #f39c12)';
+          if (kbdMode) p.classList.add('kbd-active');
+        } else {
+          p.style.opacity = '0';
+        }
+      });
+    }
+
+    document.addEventListener('keydown', function (e) {
+      const key = e.key.toLowerCase();
+
+      if (key === 'n') { init(); return; }
+
+      // Spieler 1 (turn 1): A/S/D only
+      // Spieler 2 (turn 2): Arrow keys only
+      const isASD = key === 'a' || key === 's' || key === 'd';
+      const isArrow = key === 'arrowleft' || key === 'arrowright' || key === 'arrowdown';
+
+      if (isASD && turn !== 1) return;
+      if (isArrow && turn !== 2) return;
+
+      if (key === 'arrowleft' || key === 'a') {
+        e.preventDefault();
+        kbdMode = true;
+        cursorCol = Math.max(0, cursorCol - 1);
+        showKbdCursor();
+      } else if (key === 'arrowright' || key === 'd') {
+        e.preventDefault();
+        kbdMode = true;
+        cursorCol = Math.min(COLS - 1, cursorCol + 1);
+        showKbdCursor();
+      } else if (key === 'arrowdown' || key === 's') {
+        e.preventDefault();
+        kbdMode = true;
+        drop(cursorCol);
+        showKbdCursor();
+      }
+    });
 
 
-init();
-</script>
+    init();
+  </script>
 </body>
+
 </html>
