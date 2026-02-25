@@ -176,6 +176,42 @@
     font-size: 0.85rem;
     opacity: 0.5;
   }
+
+  .controls {
+    position: absolute;
+    right: -180px;
+    bottom: 0;
+    width: 165px;
+    font-size: 0.78rem;
+    opacity: 0.45;
+    line-height: 1.7;
+  }
+
+  .controls .title {
+    font-weight: 600;
+    margin-bottom: 0.3rem;
+    opacity: 0.8;
+    font-size: 0.82rem;
+  }
+
+  .controls kbd {
+    display: inline-block;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 4px;
+    padding: 0px 5px;
+    font-family: inherit;
+    font-size: 0.75rem;
+    min-width: 22px;
+    text-align: center;
+  }
+
+  /* Keyboard cursor highlight on preview */
+  .preview-cell .preview-piece.kbd-active {
+    opacity: 0.7 !important;
+    outline: 2px solid rgba(255,255,255,0.5);
+    outline-offset: 3px;
+  }
 </style>
 </head>
 <body>
@@ -190,6 +226,13 @@
 <div class="board-wrapper">
   <div class="preview-row" id="preview"></div>
   <div class="board" id="board"></div>
+  <div class="controls">
+    <div class="title">Tastatur</div>
+    <kbd>&larr;</kbd> / <kbd>A</kbd> &nbsp;Links<br>
+    <kbd>&rarr;</kbd> / <kbd>D</kbd> &nbsp;Rechts<br>
+    <kbd>&darr;</kbd> / <kbd>S</kbd> &nbsp;Einwerfen<br>
+    <kbd>N</kbd> &nbsp;Neues Spiel
+  </div>
 </div>
 
 <button class="btn" onclick="init()">Neues Spiel</button>
@@ -198,7 +241,7 @@
 
 <script>
 const COLS = 13, ROWS = 11, WIN = 6;
-let grid, turn, gameOver;
+let grid, turn, gameOver, cursorCol = Math.floor(COLS / 2), kbdMode = false;
 
 function init() {
   grid = Array.from({length: ROWS}, () => Array(COLS).fill(0));
@@ -230,7 +273,7 @@ function render() {
       cell.dataset.col = c;
 
       cell.addEventListener('click', () => drop(c));
-      cell.addEventListener('mouseenter', () => showPreview(c));
+      cell.addEventListener('mouseenter', () => { kbdMode = false; showPreview(c); });
       cell.addEventListener('mouseleave', clearPreview);
 
       board.appendChild(cell);
@@ -320,6 +363,46 @@ function checkWin(row, col, player) {
   }
   return null;
 }
+
+function showKbdCursor() {
+  const pieces = document.querySelectorAll('.preview-piece');
+  pieces.forEach((p, i) => {
+    p.classList.remove('kbd-active');
+    if (i === cursorCol && grid[0][cursorCol] === 0 && !gameOver) {
+      p.style.opacity = '0.7';
+      p.style.background = turn === 1
+        ? 'radial-gradient(circle at 35% 35%, #ff6b6b, #c0392b)'
+        : 'radial-gradient(circle at 35% 35%, #ffd93d, #f39c12)';
+      if (kbdMode) p.classList.add('kbd-active');
+    } else {
+      p.style.opacity = '0';
+    }
+  });
+}
+
+document.addEventListener('keydown', function(e) {
+  const key = e.key.toLowerCase();
+
+  if (key === 'n') { init(); return; }
+
+  if (key === 'arrowleft' || key === 'a') {
+    e.preventDefault();
+    kbdMode = true;
+    cursorCol = Math.max(0, cursorCol - 1);
+    showKbdCursor();
+  } else if (key === 'arrowright' || key === 'd') {
+    e.preventDefault();
+    kbdMode = true;
+    cursorCol = Math.min(COLS - 1, cursorCol + 1);
+    showKbdCursor();
+  } else if (key === 'arrowdown' || key === 's') {
+    e.preventDefault();
+    kbdMode = true;
+    drop(cursorCol);
+    showKbdCursor();
+  }
+});
+
 
 init();
 </script>
