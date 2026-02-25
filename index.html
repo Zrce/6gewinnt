@@ -177,24 +177,58 @@
     opacity: 0.5;
   }
 
-  .controls {
+  .player-label {
     position: absolute;
-    right: -180px;
-    bottom: 0;
-    width: 165px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 150px;
+    text-align: center;
     font-size: 0.78rem;
-    opacity: 0.45;
     line-height: 1.7;
+    padding: 1rem 0.8rem;
+    border-radius: 10px;
+    border: 2px solid transparent;
+    transition: opacity 0.3s, border-color 0.3s, background 0.3s;
+    opacity: 0.35;
   }
 
-  .controls .title {
-    font-weight: 600;
-    margin-bottom: 0.3rem;
-    opacity: 0.8;
-    font-size: 0.82rem;
+  .player-label.active {
+    opacity: 1;
+    background: rgba(255,255,255,0.05);
   }
 
-  .controls kbd {
+  .player-label.active.red {
+    border-color: rgba(192, 57, 43, 0.6);
+  }
+
+  .player-label.active.yellow {
+    border-color: rgba(243, 156, 18, 0.6);
+  }
+
+  .player-label .player-name {
+    font-weight: 700;
+    font-size: 1.1rem;
+    margin-bottom: 0.2rem;
+  }
+
+  .player-label .player-color {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    margin-bottom: 0.5rem;
+    font-size: 0.85rem;
+  }
+
+  .player-label-left {
+    right: calc(100% + 20px);
+  }
+
+  .player-label-right {
+    left: calc(100% + 20px);
+  }
+
+  .player-label kbd {
     display: inline-block;
     background: rgba(255,255,255,0.1);
     border: 1px solid rgba(255,255,255,0.2);
@@ -204,6 +238,13 @@
     font-size: 0.75rem;
     min-width: 22px;
     text-align: center;
+  }
+
+  .player-label .keys-title {
+    font-weight: 600;
+    margin-bottom: 0.2rem;
+    opacity: 0.7;
+    font-size: 0.75rem;
   }
 
   /* Keyboard cursor highlight on preview */
@@ -226,12 +267,21 @@
 <div class="board-wrapper">
   <div class="preview-row" id="preview"></div>
   <div class="board" id="board"></div>
-  <div class="controls">
-    <div class="title">Tastatur</div>
-    <kbd>&larr;</kbd> / <kbd>A</kbd> &nbsp;Links<br>
-    <kbd>&rarr;</kbd> / <kbd>D</kbd> &nbsp;Rechts<br>
-    <kbd>&darr;</kbd> / <kbd>S</kbd> &nbsp;Einwerfen<br>
-    <kbd>N</kbd> &nbsp;Neues Spiel
+  <div class="player-label player-label-left" id="player1">
+    <div class="player-name">Spieler 1</div>
+    <div class="player-color"><span class="dot red"></span> Rot</div>
+    <div class="keys-title">Tasten</div>
+    <kbd>A</kbd> Links<br>
+    <kbd>D</kbd> Rechts<br>
+    <kbd>S</kbd> Einwerfen
+  </div>
+  <div class="player-label player-label-right" id="player2">
+    <div class="player-name">Spieler 2</div>
+    <div class="player-color"><span class="dot yellow"></span> Gelb</div>
+    <div class="keys-title">Tasten</div>
+    <kbd>&larr;</kbd> Links<br>
+    <kbd>&rarr;</kbd> Rechts<br>
+    <kbd>&darr;</kbd> Einwerfen
   </div>
 </div>
 
@@ -320,7 +370,7 @@ function drop(col) {
     winCells.forEach(([r, c]) => {
       document.querySelector('.board').children[r * COLS + c].classList.add('win');
     });
-    updateStatus(turn === 1 ? 'Rot gewinnt!' : 'Gelb gewinnt!', turn);
+    updateStatus(turn === 1 ? 'Spieler 1 gewinnt!' : 'Spieler 2 gewinnt!', turn);
     clearPreview();
     return;
   }
@@ -338,13 +388,23 @@ function drop(col) {
 
 function updateStatus(msg, winner) {
   const el = document.getElementById('status');
+  const p1 = document.getElementById('player1');
+  const p2 = document.getElementById('player2');
   if (msg) {
     const c = winner ? color(winner) : '';
     el.innerHTML = (c ? '<span class="dot ' + c + '"></span>' : '') + '<span>' + msg + '</span>';
+    p1.classList.remove('active', 'red', 'yellow');
+    p2.classList.remove('active', 'red', 'yellow');
+    if (winner === 1) { p1.classList.add('active', 'red'); }
+    else if (winner === 2) { p2.classList.add('active', 'yellow'); }
   } else {
     const c = color(turn);
-    const name = turn === 1 ? 'Rot' : 'Gelb';
+    const name = turn === 1 ? 'Spieler 1' : 'Spieler 2';
     el.innerHTML = '<span class="dot ' + c + '"></span><span>' + name + ' ist am Zug</span>';
+    p1.classList.remove('active', 'red');
+    p2.classList.remove('active', 'yellow');
+    if (turn === 1) { p1.classList.add('active', 'red'); }
+    else { p2.classList.add('active', 'yellow'); }
   }
 }
 
@@ -384,6 +444,14 @@ document.addEventListener('keydown', function(e) {
   const key = e.key.toLowerCase();
 
   if (key === 'n') { init(); return; }
+
+  // Spieler 1 (turn 1): A/S/D only
+  // Spieler 2 (turn 2): Arrow keys only
+  const isASD = key === 'a' || key === 's' || key === 'd';
+  const isArrow = key === 'arrowleft' || key === 'arrowright' || key === 'arrowdown';
+
+  if (isASD && turn !== 1) return;
+  if (isArrow && turn !== 2) return;
 
   if (key === 'arrowleft' || key === 'a') {
     e.preventDefault();
